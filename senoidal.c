@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <windows.h>
 #include <mmsystem.h>
-#include <math.h>  // ⬅️ ADICIONAR ESTA LINHA
+#include <math.h>
 
 int main() {
-    #define BUFFER_SIZE (44100 / 20)
+    #define BUFFER_SIZE (44100 / 20) // menor buffer = resposta mais rápida
 
     WAVEFORMATEX wfx;
     wfx.wFormatTag = WAVE_FORMAT_PCM;
@@ -20,7 +20,6 @@ int main() {
 
     while (1) {
         int freq = 0;
-        int play_chord = 0;  // ⬅️ CONTROLAR SE TOCA NORMAL OU "ACORDE"
 
         if (GetAsyncKeyState(VK_ESCAPE)) break;
 
@@ -33,33 +32,19 @@ int main() {
         else if (GetAsyncKeyState('H')) freq = 440;
         else if (GetAsyncKeyState('J')) freq = 493;
         else if (GetAsyncKeyState('K')) freq = 523;
-        
-        // ⬅️ SE APERTAR 'P', TOCA O "ACORDE" NA ÚLTIMA NOTA
-        if (GetAsyncKeyState('P')) play_chord = 1;
-        
+        else freq = 0;
+
         if (freq > 0) {
             short buffer[BUFFER_SIZE];
             int samples_per_period = 44100 / freq;
 
+            // onda quadrada simples
             for (int i = 0; i < BUFFER_SIZE; i++) {
-                if (play_chord) {
                 double t = (double)i / 44100.0;
-                
-                // FORMA DE ONDA MAIS RICA (quadrada suavizada)
-                double wave1 = (i % (44100/freq) < (44100/freq)/2) ? 0.7 : -0.7;
-                double wave2 = (i % (44100/(int)(freq*1.25)) < (44100/(int)(freq*1.25))/2) ? 0.5 : -0.5;
-                double wave3 = (i % (44100/(int)(freq*1.5)) < (44100/(int)(freq*1.5))/2) ? 0.4 : -0.4;
-                
-                // Mistura as três ondas quadradas (mais harmônicos naturais)
-                double mixed = wave1 + wave2 + wave3;
-                
-                buffer[i] = (short)(15000 * mixed);
-            } else {
-                    // ⬅️ MODO NORMAL - ONDA QUADRADA ORIGINAL
-                    buffer[i] = (i % samples_per_period < samples_per_period / 2) ? 20000 : -20000;
-                }
+                buffer[i] = (short)(30000 * sin(2.0 * 3.14159265 * freq * t));
             }
 
+            // reseta áudio anterior pra não acumular buffers
             waveOutReset(hWave);
 
             WAVEHDR header;
@@ -72,7 +57,7 @@ int main() {
             waveOutWrite(hWave, &header, sizeof(WAVEHDR));
         }
 
-        Sleep(2);
+        Sleep(2); // tempo curto = resposta imediata
     }
 
     waveOutClose(hWave);
