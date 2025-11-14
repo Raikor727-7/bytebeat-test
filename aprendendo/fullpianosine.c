@@ -22,6 +22,7 @@ int main(){
 
     int play_type = 0;  // ⬅️ CONTROLAR TIPO
     int volume = 28000;
+    float duty_cycle = 0.3;
 
     while (1) {
         float freq = 0;
@@ -70,7 +71,13 @@ int main(){
                 printf("modo triangle\n");
                 play_type = 3;
                 break;
+            case '5':
+                system("cls");
+                printf("modo quadrado com duty (<- e -> para modificar)\n");
+                play_type = 4;
+                break;
             }
+            
         }
 
         if (GetAsyncKeyState(VK_UP)){
@@ -84,7 +91,7 @@ int main(){
                 }
                                
             }
-            if (GetAsyncKeyState(VK_DOWN)){
+        if (GetAsyncKeyState(VK_DOWN)){
                 volume -= 500;
                 if (volume <= 5000){
                     volume = 5000;
@@ -92,6 +99,26 @@ int main(){
                 }
                 else{
                     printf("\rVolume: %d                        ", volume); 
+                }
+        }
+        if (GetAsyncKeyState(VK_RIGHT)){
+                duty_cycle += 0.1;
+                if (duty_cycle >= 1){
+                    duty_cycle = 1;
+                    printf("\rduty cycle: %f    max", duty_cycle);
+                }
+                else{
+                    printf("\rduty cycle: %f          ", duty_cycle); 
+                }
+        }
+        if (GetAsyncKeyState(VK_LEFT)){
+                duty_cycle -= 0.1;
+                if (duty_cycle <= 0){
+                    duty_cycle = 0;
+                    printf("\rduty cycle: %f    max", duty_cycle);
+                }
+                else{
+                    printf("\rduty cycle: %f          ", duty_cycle); 
                 }
         }
 
@@ -146,6 +173,13 @@ int main(){
                     double t = fmod((double)i / (44100.0 / freq), 1.0);
                     double tri = 4.0 * fabs(t - 0.5) - 1.0;
                     buffer[i] = (short)(volume * tri);
+                }
+            }
+            else if (play_type == 4){
+                for (int i = 0; i < BUFFER_SIZE; i++) {
+                    int samples_per_period = 44100 / freq;
+                    int threshold = (int)(samples_per_period * duty_cycle);
+                    buffer[i] = (i % samples_per_period < threshold / 2) ? volume : -volume;
                 }
             }
             
