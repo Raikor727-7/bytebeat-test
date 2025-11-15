@@ -7,6 +7,15 @@
 
 int main(){
     #define BUFFER_SIZE (44100 / 20)
+    #define MAX_VOICES 5
+
+    typedef struct {
+        float freq;
+        int active;
+        double phase;
+    } Voice;
+
+    Voice voices[MAX_VOICES] = {0};
 
     WAVEFORMATEX wfx;
     wfx.wFormatTag = WAVE_FORMAT_PCM;
@@ -110,46 +119,90 @@ int main(){
                 }
                 else{
                     printf("\rduty cycle: %f          ", duty_cycle); 
+                    Sleep(2000);
                 }
-                Sleep(2);
         }
         if (GetAsyncKeyState(VK_LEFT)){
                 duty_cycle -= 0.1;
                 if (duty_cycle <= 0){
                     duty_cycle = 0;
-                    printf("\rduty cycle: %f    max", duty_cycle);
+                    printf("\rduty cycle: %f    min", duty_cycle);
                 }
                 else{
                     printf("\rduty cycle: %f          ", duty_cycle); 
-                }
-                Sleep(2);
+                    Sleep(2000);
+                }                
         }
 
         if (GetAsyncKeyState(VK_ESCAPE)) break;
 
-        // notas DO a SI (A a K)
-        if (GetAsyncKeyState('A')) freq = 261.63; //DO
-        else if (GetAsyncKeyState('S')) freq = 293.66; //RE
-        else if (GetAsyncKeyState('D')) freq = 329.63; //MI
-        else if (GetAsyncKeyState('F')) freq = 349.23; //FA
-        else if (GetAsyncKeyState('G')) freq = 392.00; //SOL
-        else if (GetAsyncKeyState('H')) freq = 440.00; //LA
-        else if (GetAsyncKeyState('J')) freq = 493.88; //SI
-        else if (GetAsyncKeyState('K')) freq = 523.25; //DO UMA OITAVA ACIMA
-        else if (GetAsyncKeyState('Q')) freq = 293.66/2; //DO UMA OITAVA ABAIXO
-        else if (GetAsyncKeyState('W')) freq = 329.63/2; //RE UMA OITAVA ABAIXO
-        else if (GetAsyncKeyState('E')) freq = 349.23/2; //MI UMA OITAVA ABAIXO
-        else if (GetAsyncKeyState('R')) freq = 392.00/2; //FA UMA OITAVA ABAIXO
-        else if (GetAsyncKeyState('T')) freq = 440.00/2; //SOL UMA OITAVA ABAIXO
-        else if (GetAsyncKeyState('Y')) freq = 493.88/2; //LA UMA OITAVA ABAIXO
-        else if (GetAsyncKeyState('U')) freq = 293.66/2; //SI UMA OITAVA ABAIXO
-        else if (GetAsyncKeyState('Z')) freq = 329.63*2; //RE UMA OITAVA ACIMA
-        else if (GetAsyncKeyState('X')) freq = 349.23*2; //MI UMA OITAVA ACIMA
-        else if (GetAsyncKeyState('C')) freq = 392.00*2; //FA UMA OITAVA ACIMA
-        else if (GetAsyncKeyState('V')) freq = 440.00*2; //SOL UMA OITAVA ACIMA
-        else if (GetAsyncKeyState('B')) freq = 493.88*2; //LA UMA OITAVA ACIMA
-        else if (GetAsyncKeyState('N')) freq = 523.25*2; //SI UMA OITAVA ACIMA
-        else if (GetAsyncKeyState('M')) freq = 523.25*3; //DO DUAS OITAVA ACIMA
+        // notas 
+        if (GetAsyncKeyState('A')){
+            freq = 261.63; //DO                 
+        }
+        if (GetAsyncKeyState('S')){
+            freq = 293.66; //RE              
+        }
+        if (GetAsyncKeyState('D')){
+            freq = 329.63; //MI            
+        }
+        if (GetAsyncKeyState('F')){
+            freq = 349.23; //FA                 
+        }
+        if (GetAsyncKeyState('G')){
+            freq = 392.00; //SOL     
+        }
+        if (GetAsyncKeyState('H')){
+            freq = 440.00; //LA             
+        }
+        if (GetAsyncKeyState('J')){
+            freq = 493.88; //SI                  
+        }
+        if (GetAsyncKeyState('K')){
+            freq = 261.63 * 2;//DO UMA OITAVA ACIMA
+        }
+        if (GetAsyncKeyState('Q')){
+            freq = 261.63/2;//DO UMA OITAVA ABAIXO
+        } 
+        if (GetAsyncKeyState('W')){
+            freq = 293.66/2;//RE UMA OITAVA ABAIXO
+        } 
+        if (GetAsyncKeyState('E')){
+            freq = 329.63; //MI UMA OITAVA ABAIXO
+        }
+        if (GetAsyncKeyState('R')){
+            freq = 349.23/2;//FA UMA OITAVA ABAIXO
+        }
+        if (GetAsyncKeyState('T')){
+            freq = 392.00/2;//SOL UMA OITAVA ABAIXO 
+        }
+        if (GetAsyncKeyState('Y')){
+            freq = 440.00/2;//LA UMA OITAVA ABAIXO   
+        }
+        if (GetAsyncKeyState('U')){
+            freq = 493.88/2;//SI UMA OITAVA ABAIXO   
+        }
+        if (GetAsyncKeyState('Z')){
+            freq = 293.66*2;//RE UMA OITAVA ACIMA
+        }
+        if (GetAsyncKeyState('X')){
+            freq = 329.63*2;//MI UMA OITAVA ACIMA
+        }
+        if (GetAsyncKeyState('C')){
+            freq = 349.23*2; //FA UMA OITAVA ACIMA
+        }
+        if (GetAsyncKeyState('V')){
+            freq = 392.00*2;//SOL UMA OITAVA ACIMA
+        }
+        if (GetAsyncKeyState('B')){
+            freq = 440.00*2; //LA UMA OITAVA ACIMA
+        }
+        if (GetAsyncKeyState('N')){
+            freq = 493.88*2; //SI UMA OITAVA ACIMA
+        } 
+        if (GetAsyncKeyState('M')){
+            freq = 261.63 * 3; //DO DUAS OITAVA ACIMA
+        }
         
         if (freq > 0) {
             short buffer[BUFFER_SIZE];
@@ -182,7 +235,7 @@ int main(){
                 for (int i = 0; i < BUFFER_SIZE; i++) {
                     int samples_per_period = 44100 / freq;
                     int threshold = (int)(samples_per_period * duty_cycle);
-                    buffer[i] = (i % samples_per_period < threshold / 2) ? volume : -volume;
+                    buffer[i] = (i % samples_per_period < threshold) ? volume : -volume;
                 }
             }
             
