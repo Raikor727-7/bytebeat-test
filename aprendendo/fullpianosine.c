@@ -18,15 +18,51 @@ typedef struct {
 
 Voice voices[MAX_VOICES] = {0};
 
+//notas
+typedef struct {
+    int key;
+    float freq;
+} KeyMap;
+
+KeyMap keymap[] = {
+    {'A', 261.63},   // DO
+    {'S', 293.66},   // RE
+    {'D', 329.63},   // MI
+    {'F', 349.23},   // FA
+    {'G', 392.00},   // SOL
+    {'H', 440.00},   // LA
+    {'J', 493.88},   // SI
+    {'K', 261.63*2}, // DO ↑
+    {'Q', 261.63/2}, // DO ↓
+    {'W', 293.66/2}, // RE ↓
+    {'E', 329.63/2}, // MI ↓
+    {'R', 349.23/2}, // FA ↓
+    {'T', 392.00/2}, // SOL ↓
+    {'Y', 440.00/2}, // LA ↓
+    {'U', 493.88/2}, // SI ↓
+    {'Z', 293.66*2}, // RE ↑
+    {'X', 329.63*2}, // MI ↑
+    {'C', 349.23*2}, // FA ↑
+    {'V', 392.00*2}, // SOL ↑
+    {'B', 440.00*2}, // LA ↑
+    {'N', 493.88*2}, // SI ↑
+    {'M', 261.63*3}, // DO ↑↑
+};
+int KEYMAP_SIZE = sizeof(keymap) / sizeof(KeyMap);
+
 void activate_voice(int key, float freq) {
+    for (int v = 0; v < MAX_VOICES; v++) {
+        if (voices[v].active && voices[v].key == key) {
+            return;
+        }
+    }
+
     // PROCURE uma voice que esteja com active = 0
     for (int v = 0; v < MAX_VOICES; v++){
         if(!voices[v].active){
             voices[v].freq = freq;
+            voices[v].phase = 0;
             voices[v].active = 1;
-            for (int i = 0; i < BUFFER_SIZE; i++) {
-                voices[v].phase = (double)i / 44100.0;
-            }
             voices[v].key = key;
             return;
         }
@@ -34,19 +70,27 @@ void activate_voice(int key, float freq) {
 }
 void deactivate_voice(int key) {
     // PROCURE uma voice que esteja com active = 0
-    for (int v = 0; v < MAX_VOICES; v++){
-        if(voices[v].active && voices[v].key == key){
-            voices[v].freq = 0;
+    for (int v = 0; v < MAX_VOICES; v++) {
+        if (voices[v].active && voices[v].key == key) {
             voices[v].active = 0;
+            voices[v].freq = 0.0f;
+            voices[v].phase = 0.0;
+            voices[v].key = 0;
             return;
         }
     }
 }
 
+// clamp helper
+static inline double clamp_double(double v, double lo, double hi) {
+    if (v < lo) return lo;
+    if (v > hi) return hi;
+    return v;
+}
+
 
 int main(){
    
-
     WAVEFORMATEX wfx;
     wfx.wFormatTag = WAVE_FORMAT_PCM;
     wfx.nChannels = 1;
@@ -57,150 +101,79 @@ int main(){
     wfx.cbSize = 0;
 
     HWAVEOUT hWave;
-    waveOutOpen(&hWave, WAVE_MAPPER, &wfx, 0, 0, CALLBACK_NULL);
+    if (waveOutOpen(&hWave, WAVE_MAPPER, &wfx, 0, 0, CALLBACK_NULL) != MMSYSERR_NOERROR) {
+        fprintf(stderr, "Erro ao abrir device de audio\n");
+        return 1;
+    }
 
     int play_type = 0;  // ⬅️ CONTROLAR TIPO
     int volume = 28000;
     float duty_cycle = 0.3;
 
-    //notas
-    typedef struct {
-        int key;
-        float freq;
-    } KeyMap;
+    printf("Piano polifonico - teclas: A S D F G H J K Q W E R T Y U Z X C V B N M\n");
+    printf("1=Sine 2=Square 3=Saw 4=Triangle 5=SquareDuty  UP/DOWN volume, LEFT/RIGHT duty\n");
+    printf("ESC para sair\n");
 
-    KeyMap keymap[] = {
-        {'A', 261.63},   // DO
-        {'S', 293.66},   // RE
-        {'D', 329.63},   // MI
-        {'F', 349.23},   // FA
-        {'G', 392.00},   // SOL
-        {'H', 440.00},   // LA
-        {'J', 493.88},   // SI
-        {'K', 261.63*2}, // DO ↑
-        {'Q', 261.63/2}, // DO ↓
-        {'W', 293.66/2}, // RE ↓
-        {'E', 329.63/2}, // MI ↓
-        {'R', 349.23/2}, // FA ↓
-        {'T', 392.00/2}, // SOL ↓
-        {'Y', 440.00/2}, // LA ↓
-        {'U', 493.88/2}, // SI ↓
-        {'Z', 293.66*2}, // RE ↑
-        {'X', 329.63*2}, // MI ↑
-        {'C', 349.23*2}, // FA ↑
-        {'V', 392.00*2}, // SOL ↑
-        {'B', 440.00*2}, // LA ↑
-        {'N', 493.88*2}, // SI ↑
-        {'M', 261.63*3}, // DO ↑↑
-    };
-    int KEYMAP_SIZE = sizeof(keymap) / sizeof(KeyMap);
+    // buffer de áudio (shorts)
+    short buffer[BUFFER_SIZE];
 
     while (1) {
-        float freq = 0;
-        
+        // leitura de switches e teclas especiais (modo/volume/duty)
         if (_kbhit()){
             char tecla = _getch();
-
-            switch (tecla)
-            {
-            case '1':
-                system("cls");
-                printf("modo sine\n");
-                break;
-            case '2':
-                system("cls");
-                printf("modo quadrado\n");
-                play_type = 1;
-                break;
-            case '3':
-                system("cls");
-                printf("modo serra\n");
-                play_type = 2;
-                break;
-            case '4':
-                system("cls");
-                printf("modo triangle\n");
-                play_type = 3;
-                break;
-            case '5':
-                system("cls");
-                printf("modo quadrado com duty (<- e -> para modificar)\n");
-                play_type = 4;
-                break;
+            switch (tecla) {
+                case '1': play_type = 0; printf("\rmodo sine        "); break;
+                case '2': play_type = 1; printf("\rmodo quadrado      "); break;
+                case '3': play_type = 2; printf("\rmodo serra       "); break;
+                case '4': play_type = 3; printf("\rmodo triangle         "); break;
+                case '5': play_type = 4; printf("\rmodo quadrado duty   "); break;
             }
-            
         }
 
-        if (GetAsyncKeyState(VK_UP)){
-                volume += 500;
-                if (volume >= 32767){
-                    volume = 32767;
-                    printf("\rVolume: %d    volume maximo", volume);
-                }
-                else{
-                    printf("\rVolume: %d                        ", volume); 
-                }
-                Sleep(2);      
-            }
-        if (GetAsyncKeyState(VK_DOWN)){
-                volume -= 500;
-                if (volume <= 5000){
-                    volume = 5000;
-                    printf("\rVolume: %d    volume minimo", volume);
-                }
-                else{
-                    printf("\rVolume: %d                        ", volume); 
-                }
-                Sleep(2);
+        if (GetAsyncKeyState(VK_UP) & 0x8000) {
+            volume += 500;
+            if (volume > 32767) volume = 32767;
+            printf("\rVolume: %d   ", volume);
+            Sleep(80);
         }
-        if (GetAsyncKeyState(VK_RIGHT)){
-                duty_cycle += 0.1;
-                if (duty_cycle >= 1){
-                    duty_cycle = 1;
-                    printf("\rduty cycle: %f    max", duty_cycle);
-                }
-                else{
-                    printf("\rduty cycle: %f          ", duty_cycle); 
-                    Sleep(2000);
-                }
+        if (GetAsyncKeyState(VK_DOWN) & 0x8000) {
+            volume -= 500;
+            if (volume < 1000) volume = 1000;
+            printf("\rVolume: %d   ", volume);
+            Sleep(80);
         }
-        if (GetAsyncKeyState(VK_LEFT)){
-                duty_cycle -= 0.1;
-                if (duty_cycle <= 0){
-                    duty_cycle = 0;
-                    printf("\rduty cycle: %f    min", duty_cycle);
-                }
-                else{
-                    printf("\rduty cycle: %f          ", duty_cycle); 
-                    Sleep(2000);
-                }                
+        if (GetAsyncKeyState(VK_RIGHT) & 0x8000) {
+            duty_cycle += 0.05f;
+            if (duty_cycle > 0.95f) duty_cycle = 0.95f;
+            printf("\rduty: %.2f   ", duty_cycle);
+            Sleep(150);
         }
-
-        if (GetAsyncKeyState(VK_ESCAPE)) break;
+        if (GetAsyncKeyState(VK_LEFT) & 0x8000) {
+            duty_cycle -= 0.05f;
+            if (duty_cycle < 0.05f) duty_cycle = 0.05f;
+            printf("\rduty: %.2f   ", duty_cycle);
+            Sleep(150);
+        }
+        if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) break;
 
         // notas 
         // Procurar notas na tabela
-        freq = 0;
         for (int i = 0; i < KEYMAP_SIZE; i++) {
             int k = keymap[i].key;
             float f = keymap[i].freq;
             
             if (GetAsyncKeyState(k) & 0x8000) {
-                freq = keymap[i].freq;
                 activate_voice(k, f);
-                break;
             }else{
                 deactivate_voice(k);
             }
         }
 
-        short buffer[BUFFER_SIZE];
-
         for (int i = 0; i < BUFFER_SIZE; i++) {
             double mix = 0;
 
             for (int v = 0; v < MAX_VOICES; v++) {
-                if (voices[v].active) {
+                if (voices[v].active && voices[v].freq > 0.0f) {
 
                     double sample = 0;
                     double p = voices[v].phase;
@@ -227,21 +200,28 @@ int main(){
                             break;
                     }
 
+                    // mix in
                     mix += sample;
 
+                    // advance phase
                     voices[v].phase += voices[v].freq / 44100.0;
                     if (voices[v].phase >= 1.0) voices[v].phase -= 1.0;
                 }
             }
 
-            // Normaliza e aplica volume
-            mix *= (volume / 32767.0);
+            // normalize mix by active voices to avoid clipping (simple approach)
+            int active_count = 0;
+            for (int v = 0; v < MAX_VOICES; v++) if (voices[v].active) active_count++;
+            if (active_count > 0) {
+                mix /= sqrt(active_count); // simple per-voice normalization
+            }
 
-            // clamp
-            if (mix > 1) mix = 1;
-            if (mix < -1) mix = -1;
+            // apply global volume (scale to -1..1)
+            double vol_scale = (double)volume / 32767.0;
+            mix *= vol_scale;
 
-            buffer[i] = (short)(mix * 32767);
+            mix = clamp_double(mix, -1.0, 1.0);
+            buffer[i] = (short)(mix * 32767.0);
         }
 
         WAVEHDR header;
@@ -249,12 +229,23 @@ int main(){
         header.lpData = (LPSTR)buffer;
         header.dwFlags = 0;
 
-        waveOutPrepareHeader(hWave, &header, sizeof(header));
-        waveOutWrite(hWave, &header, sizeof(header));
-
-        Sleep(2);
+        if (waveOutPrepareHeader(hWave, &header, sizeof(header)) == MMSYSERR_NOERROR) {
+            waveOutWrite(hWave, &header, sizeof(header));
+            // espera terminar (bloqueia curto; evita acumular headers)
+            while (!(header.dwFlags & WHDR_DONE)) {
+                //Sleep(1);
+            }
+            waveOutUnprepareHeader(hWave, &header, sizeof(header));
+        } else {
+            // se falhar, apenas continue (não fatal)
         }
 
+        // pequeno sleep pra não consumir 100% CPU (já estamos gerando buffer)
+        // Sleep aqui não necessário pois aguardamos WHDR_DONE, mas manter um tiny pause
+        //Sleep(2);
+        }
+
+    waveOutReset(hWave);
     waveOutClose(hWave);
     return 0;
 }
