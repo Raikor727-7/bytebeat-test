@@ -5,17 +5,47 @@
 #include <math.h>  // ⬅️ ADICIONAR ESTA LINHA
 #include <conio.h>  
 
+#define BUFFER_SIZE (44100 / 20)
+#define MAX_VOICES 5
+#define PI 3.14159265358979323
+
+typedef struct {
+    float freq;
+    int active;
+    double phase;
+    int key;
+} Voice;
+
+Voice voices[MAX_VOICES] = {0};
+
+void activate_voice(int key, float freq) {
+    // PROCURE uma voice que esteja com active = 0
+    for (int v = 0; v < MAX_VOICES; v++){
+        if(!voices[v].active){
+            voices[v].freq = freq;
+            voices[v].active = 1;
+            for (int i = 0; i < BUFFER_SIZE; i++) {
+                voices[v].phase = (double)i / 44100.0;
+            }
+            voices[v].key = key;
+            return;
+        }
+    }
+}
+void deactivate_voice(int key) {
+    // PROCURE uma voice que esteja com active = 0
+    for (int v = 0; v < MAX_VOICES; v++){
+        if(voices[v].active && voices[v].key == key){
+            voices[v].freq = 0;
+            voices[v].active = 0;
+            return;
+        }
+    }
+}
+
+
 int main(){
-    #define BUFFER_SIZE (44100 / 20)
-    #define MAX_VOICES 5
-
-    typedef struct {
-        float freq;
-        int active;
-        double phase;
-    } Voice;
-
-    Voice voices[MAX_VOICES] = {0};
+   
 
     WAVEFORMATEX wfx;
     wfx.wFormatTag = WAVE_FORMAT_PCM;
@@ -33,32 +63,44 @@ int main(){
     int volume = 28000;
     float duty_cycle = 0.3;
 
+    //notas
+    typedef struct {
+        int key;
+        float freq;
+    } KeyMap;
+
+    KeyMap keymap[] = {
+        {'A', 261.63},   // DO
+        {'S', 293.66},   // RE
+        {'D', 329.63},   // MI
+        {'F', 349.23},   // FA
+        {'G', 392.00},   // SOL
+        {'H', 440.00},   // LA
+        {'J', 493.88},   // SI
+        {'K', 261.63*2}, // DO ↑
+        {'Q', 261.63/2}, // DO ↓
+        {'W', 293.66/2}, // RE ↓
+        {'E', 329.63/2}, // MI ↓
+        {'R', 349.23/2}, // FA ↓
+        {'T', 392.00/2}, // SOL ↓
+        {'Y', 440.00/2}, // LA ↓
+        {'U', 493.88/2}, // SI ↓
+        {'Z', 293.66*2}, // RE ↑
+        {'X', 329.63*2}, // MI ↑
+        {'C', 349.23*2}, // FA ↑
+        {'V', 392.00*2}, // SOL ↑
+        {'B', 440.00*2}, // LA ↑
+        {'N', 493.88*2}, // SI ↑
+        {'M', 261.63*3}, // DO ↑↑
+    };
+    int KEYMAP_SIZE = sizeof(keymap) / sizeof(KeyMap);
+
     while (1) {
         float freq = 0;
         
         if (_kbhit()){
             char tecla = _getch();
 
-            
-
-            // switch(tecla){
-            //     case '[':
-            //         volume += 500;
-            //         if (volume >= 32767){
-            //             printf("volume maximo");
-            //             volume = 32767;
-            //         }
-            //         printf("Volume: %d\r", volume);
-            //         break;
-            //     case ']':
-            //         volume -= 500;
-            //         if (volume <= 10000){
-            //             printf("volume minimo");
-            //             volume = 10000;
-            //         }
-            //         printf("Volume: %d\r", volume);
-            //         break;
-            // }
             switch (tecla)
             {
             case '1':
@@ -137,119 +179,78 @@ int main(){
         if (GetAsyncKeyState(VK_ESCAPE)) break;
 
         // notas 
-        if (GetAsyncKeyState('A')){
-            freq = 261.63; //DO                 
-        }
-        if (GetAsyncKeyState('S')){
-            freq = 293.66; //RE              
-        }
-        if (GetAsyncKeyState('D')){
-            freq = 329.63; //MI            
-        }
-        if (GetAsyncKeyState('F')){
-            freq = 349.23; //FA                 
-        }
-        if (GetAsyncKeyState('G')){
-            freq = 392.00; //SOL     
-        }
-        if (GetAsyncKeyState('H')){
-            freq = 440.00; //LA             
-        }
-        if (GetAsyncKeyState('J')){
-            freq = 493.88; //SI                  
-        }
-        if (GetAsyncKeyState('K')){
-            freq = 261.63 * 2;//DO UMA OITAVA ACIMA
-        }
-        if (GetAsyncKeyState('Q')){
-            freq = 261.63/2;//DO UMA OITAVA ABAIXO
-        } 
-        if (GetAsyncKeyState('W')){
-            freq = 293.66/2;//RE UMA OITAVA ABAIXO
-        } 
-        if (GetAsyncKeyState('E')){
-            freq = 329.63; //MI UMA OITAVA ABAIXO
-        }
-        if (GetAsyncKeyState('R')){
-            freq = 349.23/2;//FA UMA OITAVA ABAIXO
-        }
-        if (GetAsyncKeyState('T')){
-            freq = 392.00/2;//SOL UMA OITAVA ABAIXO 
-        }
-        if (GetAsyncKeyState('Y')){
-            freq = 440.00/2;//LA UMA OITAVA ABAIXO   
-        }
-        if (GetAsyncKeyState('U')){
-            freq = 493.88/2;//SI UMA OITAVA ABAIXO   
-        }
-        if (GetAsyncKeyState('Z')){
-            freq = 293.66*2;//RE UMA OITAVA ACIMA
-        }
-        if (GetAsyncKeyState('X')){
-            freq = 329.63*2;//MI UMA OITAVA ACIMA
-        }
-        if (GetAsyncKeyState('C')){
-            freq = 349.23*2; //FA UMA OITAVA ACIMA
-        }
-        if (GetAsyncKeyState('V')){
-            freq = 392.00*2;//SOL UMA OITAVA ACIMA
-        }
-        if (GetAsyncKeyState('B')){
-            freq = 440.00*2; //LA UMA OITAVA ACIMA
-        }
-        if (GetAsyncKeyState('N')){
-            freq = 493.88*2; //SI UMA OITAVA ACIMA
-        } 
-        if (GetAsyncKeyState('M')){
-            freq = 261.63 * 3; //DO DUAS OITAVA ACIMA
-        }
-        
-        if (freq > 0) {
-            short buffer[BUFFER_SIZE];
-            int samples_per_period = 44100 / freq;
-
-            if(play_type == 0){
-                for (int i = 0; i < BUFFER_SIZE; i++) {
-                    double t = (double)i / 44100.0;
-                    buffer[i] = (short)(volume * sin(2.0 * 3.14159265 * freq * t));
-                }
-            } else if (play_type == 1){
-                for (int i = 0; i < BUFFER_SIZE; i++) {
-                    int samples_per_period = 44100 / freq;
-                    buffer[i] = (i % samples_per_period < samples_per_period / 2) ? volume : -volume;
-                }
-            }else if (play_type == 2){
-                for (int i = 0; i < BUFFER_SIZE; i++) {
-                    double t = (double)i / (44100.0 / freq);
-                    double saw = 2.0 * (t - floor(t + 0.5));
-                    buffer[i] = (short)(volume * saw);
-                }
-            }else if (play_type == 3){
-                for (int i = 0; i < BUFFER_SIZE; i++) {
-                    double t = fmod((double)i / (44100.0 / freq), 1.0);
-                    double tri = 4.0 * fabs(t - 0.5) - 1.0;
-                    buffer[i] = (short)(volume * tri);
-                }
-            }
-            else if (play_type == 4){
-                for (int i = 0; i < BUFFER_SIZE; i++) {
-                    int samples_per_period = 44100 / freq;
-                    int threshold = (int)(samples_per_period * duty_cycle);
-                    buffer[i] = (i % samples_per_period < threshold) ? volume : -volume;
-                }
-            }
+        // Procurar notas na tabela
+        freq = 0;
+        for (int i = 0; i < KEYMAP_SIZE; i++) {
+            int k = keymap[i].key;
+            float f = keymap[i].freq;
             
-            waveOutReset(hWave);
-
-            WAVEHDR header;
-            header.lpData = (LPSTR)buffer;
-            header.dwBufferLength = sizeof(buffer);
-            header.dwFlags = 0;
-            header.dwLoops = 0;
-
-            waveOutPrepareHeader(hWave, &header, sizeof(WAVEHDR));
-            waveOutWrite(hWave, &header, sizeof(WAVEHDR));
+            if (GetAsyncKeyState(k) & 0x8000) {
+                freq = keymap[i].freq;
+                activate_voice(k, f);
+                break;
+            }else{
+                deactivate_voice(k);
+            }
         }
+
+        short buffer[BUFFER_SIZE];
+
+        for (int i = 0; i < BUFFER_SIZE; i++) {
+            double mix = 0;
+
+            for (int v = 0; v < MAX_VOICES; v++) {
+                if (voices[v].active) {
+
+                    double sample = 0;
+                    double p = voices[v].phase;
+
+                    switch (play_type) {
+                        case 0: // seno
+                            sample = sin(2 * PI * p);
+                            break;
+
+                        case 1: // quadrada
+                            sample = (sin(2 * PI * p) > 0 ? 1 : -1);
+                            break;
+
+                        case 2: // serra
+                            sample = 2 * (p - floor(p + 0.5));
+                            break;
+
+                        case 3: // triangular
+                            sample = 2 * fabs(2 * (p - floor(p + 0.5))) - 1;
+                            break;
+
+                        case 4: // square duty
+                            sample = (fmod(p, 1.0) < duty_cycle) ? 1 : -1;
+                            break;
+                    }
+
+                    mix += sample;
+
+                    voices[v].phase += voices[v].freq / 44100.0;
+                    if (voices[v].phase >= 1.0) voices[v].phase -= 1.0;
+                }
+            }
+
+            // Normaliza e aplica volume
+            mix *= (volume / 32767.0);
+
+            // clamp
+            if (mix > 1) mix = 1;
+            if (mix < -1) mix = -1;
+
+            buffer[i] = (short)(mix * 32767);
+        }
+
+        WAVEHDR header;
+        header.dwBufferLength = BUFFER_SIZE * sizeof(short);
+        header.lpData = (LPSTR)buffer;
+        header.dwFlags = 0;
+
+        waveOutPrepareHeader(hWave, &header, sizeof(header));
+        waveOutWrite(hWave, &header, sizeof(header));
 
         Sleep(2);
         }

@@ -2,13 +2,12 @@
 #include <stdlib.h>
 #include <windows.h>
 #include <mmsystem.h>
-#include <math.h>
+#include <math.h>  // ⬅️ ADICIONAR ESTA LINHA
 #include <conio.h>  
 
 int main(){
     #define BUFFER_SIZE (44100 / 20)
     #define MAX_VOICES 5
-    #define PI 3.14159265358979323
 
     typedef struct {
         float freq;
@@ -30,19 +29,26 @@ int main(){
     HWAVEOUT hWave;
     waveOutOpen(&hWave, WAVE_MAPPER, &wfx, 0, 0, CALLBACK_NULL);
 
-    int play_type = 0;
+    int play_type = 0;  // ⬅️ CONTROLAR TIPO
     int volume = 28000;
     float duty_cycle = 0.3;
+    // canais
+    int notas = 0;
+    double wave1 = 0;
+    double wave2 = 0;
+    double wave3 = 0;
 
     while (1) {
+        float freq = 0;
+        
         if (_kbhit()){
             char tecla = _getch();
+
             switch (tecla)
             {
             case '1':
                 system("cls");
                 printf("modo sine\n");
-                play_type = 0;
                 break;
             case '2':
                 system("cls");
@@ -65,280 +71,240 @@ int main(){
                 play_type = 4;
                 break;
             }
+            
         }
 
-        // Controles de volume e duty cycle
         if (GetAsyncKeyState(VK_UP)){
-            volume += 500;
-            if (volume >= 32767){
-                volume = 32767;
-                printf("\rVolume: %d    volume maximo", volume);
-            } else {
-                printf("\rVolume: %d                        ", volume); 
+                volume += 500;
+                if (volume >= 32767){
+                    volume = 32767;
+                    printf("\rVolume: %d    volume maximo", volume);
+                }
+                else{
+                    printf("\rVolume: %d                        ", volume); 
+                }
+                Sleep(2);      
             }
-            Sleep(2);      
-        }
         if (GetAsyncKeyState(VK_DOWN)){
-            volume -= 500;
-            if (volume <= 5000){
-                volume = 5000;
-                printf("\rVolume: %d    volume minimo", volume);
-            } else {
-                printf("\rVolume: %d                        ", volume); 
-            }
-            Sleep(2);
+                volume -= 500;
+                if (volume <= 5000){
+                    volume = 5000;
+                    printf("\rVolume: %d    volume minimo", volume);
+                }
+                else{
+                    printf("\rVolume: %d                        ", volume); 
+                }
+                Sleep(2);
         }
         if (GetAsyncKeyState(VK_RIGHT)){
-            duty_cycle += 0.1;
-            if (duty_cycle >= 1){
-                duty_cycle = 1;
-                printf("\rduty cycle: %f    max", duty_cycle);
-            } else {
-                printf("\rduty cycle: %f          ", duty_cycle); 
-            }
-            Sleep(200);
+                duty_cycle += 0.1;
+                if (duty_cycle >= 1){
+                    duty_cycle = 1;
+                    printf("\rduty cycle: %f    max", duty_cycle);
+                }
+                else{
+                    printf("\rduty cycle: %f          ", duty_cycle); 
+                    Sleep(2000);
+                }
         }
         if (GetAsyncKeyState(VK_LEFT)){
-            duty_cycle -= 0.1;
-            if (duty_cycle <= 0){
-                duty_cycle = 0;
-                printf("\rduty cycle: %f    min", duty_cycle);
-            } else {
-                printf("\rduty cycle: %f          ", duty_cycle); 
-            }
-            Sleep(200);                
+                duty_cycle -= 0.1;
+                if (duty_cycle <= 0){
+                    duty_cycle = 0;
+                    printf("\rduty cycle: %f    min", duty_cycle);
+                }
+                else{
+                    printf("\rduty cycle: %f          ", duty_cycle); 
+                    Sleep(2000);
+                }                
         }
 
         if (GetAsyncKeyState(VK_ESCAPE)) break;
 
-        // Ativação de notas
-        if (GetAsyncKeyState('A')){ 
-            for(int v = 0; v < MAX_VOICES; v++){
-                if(!voices[v].active){
-                    voices[v].freq = 261.63; //DO
-                    voices[v].active = 1;
-                    voices[v].phase = 0;
-                    break;
-                }
-            }
+        // notas 
+        if (GetAsyncKeyState('A')){
+            freq = 261.63; //DO   
+            if(notas < 4){
+                notas += 1;
+            }              
         }
-        if (GetAsyncKeyState('S')){ 
-            for(int v = 0; v < MAX_VOICES; v++){
-                if(!voices[v].active){
-                    voices[v].freq = 293.66; //RE
-                    voices[v].active = 1;
-                    voices[v].phase = 0;
-                    break;
-                }
-            }
+        if (GetAsyncKeyState('S')){
+            freq = 293.66; //RE  
+            if(notas < 4){
+                notas += 1;
+            }               
         }
-        if (GetAsyncKeyState('D')){ 
-            for(int v = 0; v < MAX_VOICES; v++){
-                if(!voices[v].active){
-                    voices[v].freq = 329.63; //MI
-                    voices[v].active = 1;
-                    voices[v].phase = 0;
-                    break;
-                }
-            }
+        if (GetAsyncKeyState('D')){
+            freq = 329.63; //MI    
+            if(notas < 4){
+                notas += 1;
+            }           
         }
-        if (GetAsyncKeyState('F')){ 
-            for(int v = 0; v < MAX_VOICES; v++){
-                if(!voices[v].active){
-                    voices[v].freq = 349.23; //FA
-                    voices[v].active = 1;
-                    voices[v].phase = 0;
-                    break;
-                }
-            }
+        if (GetAsyncKeyState('F')){
+            freq = 349.23; //FA   
+            if(notas < 4){
+                notas += 1;
+            }                 
         }
-        if (GetAsyncKeyState('G')){ 
-            for(int v = 0; v < MAX_VOICES; v++){
-                if(!voices[v].active){
-                    voices[v].freq = 392.00; //SOL
-                    voices[v].active = 1;
-                    voices[v].phase = 0;
-                    break;
-                }
-            }
+        if (GetAsyncKeyState('G')){
+            freq = 392.00; //SOL  
+            if(notas < 4){
+                notas += 1;
+            }      
         }
-        if (GetAsyncKeyState('H')){ 
-            for(int v = 0; v < MAX_VOICES; v++){
-                if(!voices[v].active){
-                    voices[v].freq = 440.00; //LA
-                    voices[v].active = 1;
-                    voices[v].phase = 0;
-                    break;
-                }
-            }
+        if (GetAsyncKeyState('H')){
+            freq = 440.00; //LA   
+            if(notas < 4){
+                notas += 1;
+            }             
         }
-        if (GetAsyncKeyState('J')){ 
-            for(int v = 0; v < MAX_VOICES; v++){
-                if(!voices[v].active){
-                    voices[v].freq = 493.88; //SI
-                    voices[v].active = 1;
-                    voices[v].phase = 0;
-                    break;
-                }
-            }
+        if (GetAsyncKeyState('J')){
+            freq = 493.88; //SI    
+            if(notas < 4){
+                notas += 1;
+            }                 
         }
-        if (GetAsyncKeyState('K')){ 
-            for(int v = 0; v < MAX_VOICES; v++){
-                if(!voices[v].active){
-                    voices[v].freq = 261.63 * 2;//DO UMA OITAVA ACIMA
-                    voices[v].active = 1;
-                    voices[v].phase = 0;
-                    break;
-                }
-            }
+        if (GetAsyncKeyState('K')){
+            freq = 261.63 * 2;//DO UMA OITAVA ACIMA
+            if(notas < 4){
+                notas += 1;
+            }   
         }
-        if (GetAsyncKeyState('Q')){ 
-            for(int v = 0; v < MAX_VOICES; v++){
-                if(!voices[v].active){
-                    voices[v].freq = 261.63/2;//DO UMA OITAVA ABAIXO
-                    voices[v].active = 1;
-                    voices[v].phase = 0;
-                    break;
-                }
-            }
+        if (GetAsyncKeyState('Q')){
+            freq = 261.63/2;//DO UMA OITAVA ABAIXO
+            if(notas < 4){
+                notas += 1;
+            }   
         } 
-        // ... (outras notas - manter como estão)
-
-        // Desativação de notas
-        if (!GetAsyncKeyState('A')) { for(int v = 0; v < MAX_VOICES; v++) if(voices[v].freq == 261.63) voices[v].active = 0; }
-        if (!GetAsyncKeyState('S')) { for(int v = 0; v < MAX_VOICES; v++) if(voices[v].freq == 293.66) voices[v].active = 0; }
-        if (!GetAsyncKeyState('D')) { for(int v = 0; v < MAX_VOICES; v++) if(voices[v].freq == 329.63) voices[v].active = 0; }
-        if (!GetAsyncKeyState('F')) { for(int v = 0; v < MAX_VOICES; v++) if(voices[v].freq == 349.23) voices[v].active = 0; }
-        if (!GetAsyncKeyState('G')) { for(int v = 0; v < MAX_VOICES; v++) if(voices[v].freq == 392.00) voices[v].active = 0; }
-        if (!GetAsyncKeyState('H')) { for(int v = 0; v < MAX_VOICES; v++) if(voices[v].freq == 440.00) voices[v].active = 0; }
-        if (!GetAsyncKeyState('J')) { for(int v = 0; v < MAX_VOICES; v++) if(voices[v].freq == 493.88) voices[v].active = 0; }
-        if (!GetAsyncKeyState('K')) { for(int v = 0; v < MAX_VOICES; v++) if(voices[v].freq == 261.63*2) voices[v].active = 0; }
-        if (!GetAsyncKeyState('Q')) { for(int v = 0; v < MAX_VOICES; v++) if(voices[v].freq == 261.63/2) voices[v].active = 0; }
-        // ... (outras desativações - manter como estão)
-
-        // VERIFICAR SE HÁ VOZES ATIVAS (CORREÇÃO PRINCIPAL)
-        int any_voice_active = 0;
-        for(int v = 0; v < MAX_VOICES; v++) {
-            if(voices[v].active) {
-                any_voice_active = 1;
-                break;
-            }
+        if (GetAsyncKeyState('W')){
+            freq = 293.66/2;//RE UMA OITAVA ABAIXO
+            if(notas < 4){
+                notas += 1;
+            }   
+        } 
+        if (GetAsyncKeyState('E')){
+            freq = 329.63/2; //MI UMA OITAVA ABAIXO
+            if(notas < 4){
+                notas += 1;
+            }   
         }
-
-        if (any_voice_active) {
+        if (GetAsyncKeyState('R')){
+            freq = 349.23/2;//FA UMA OITAVA ABAIXO
+            if(notas < 4){
+                notas += 1;
+            }   
+        }
+        if (GetAsyncKeyState('T')){
+            freq = 392.00/2;//SOL UMA OITAVA ABAIXO 
+            if(notas < 4){
+                notas += 1;
+            }   
+        }
+        if (GetAsyncKeyState('Y')){
+            freq = 440.00/2;//LA UMA OITAVA ABAIXO   
+            if(notas < 4){
+                notas += 1;
+            }   
+        }
+        if (GetAsyncKeyState('U')){
+            freq = 493.88/2;//SI UMA OITAVA ABAIXO   
+            if(notas < 4){
+                notas += 1;
+            }   
+        }
+        if (GetAsyncKeyState('Z')){
+            freq = 293.66*2;//RE UMA OITAVA ACIMA
+            if(notas < 4){
+                notas += 1;
+            }   
+        }
+        if (GetAsyncKeyState('X')){
+            freq = 329.63*2;//MI UMA OITAVA ACIMA
+            if(notas < 4){
+                notas += 1;
+            }   
+        }
+        if (GetAsyncKeyState('C')){
+            freq = 349.23*2; //FA UMA OITAVA ACIMA
+            if(notas < 4){
+                notas += 1;
+            }   
+        }
+        if (GetAsyncKeyState('V')){
+            freq = 392.00*2;//SOL UMA OITAVA ACIMA
+            if(notas < 4){
+                notas += 1;
+            }   
+        }
+        if (GetAsyncKeyState('B')){
+            freq = 440.00*2; //LA UMA OITAVA ACIMA
+            if(notas < 4){
+                notas += 1;
+            }   
+        }
+        if (GetAsyncKeyState('N')){
+            freq = 493.88*2; //SI UMA OITAVA ACIMA
+            if(notas < 4){
+                notas += 1;
+            }   
+        } 
+        if (GetAsyncKeyState('M')){
+            freq = 261.63 * 3; //DO DUAS OITAVA ACIMA
+            if(notas < 4){
+                notas += 1;
+            }   
+        }
+        
+        if (freq > 0) {
             short buffer[BUFFER_SIZE];
-            
-            // Inicializar buffer com silêncio
-            for (int i = 0; i < BUFFER_SIZE; i++) {
-                buffer[i] = 0;
-            }
+            int samples_per_period = 44100 / freq;
 
-            if(play_type == 0){ // MODO SINE
+            if(play_type == 0){
+                
                 for (int i = 0; i < BUFFER_SIZE; i++) {
-                    double mixed_sample = 0.0;
-                    int active_count = 0;
-                    
-                    for (int v = 0; v < MAX_VOICES; v++) {
-                        if (voices[v].active) {
-                            // Gera onda para esta voz
-                            double sample = sin(voices[v].phase);
-                            mixed_sample += sample;
-                            active_count++;
-                            
-                            // Atualiza fase
-                            voices[v].phase += 2.0 * PI * voices[v].freq / 44100.0;
-                            if (voices[v].phase >= 2.0 * PI) voices[v].phase -= 2.0 * PI;
+                    double t = (double)i / 44100.0;
+                    if (notas > 1){
+                        if(notas > 2){
+                            if(notas > 3){
+                                continue;
+                            }
+                            else{
+                                wave3 = (short)sin(2.0 * 3.14159265 * freq * t);
+                            }
+                        }
+                        else{
+                            wave2 = (short)sin(2.0 * 3.14159265 * freq * t);
                         }
                     }
-                    
-                    // Aplica volume (com normalização se houver múltiplas vozes)
-                    if (active_count > 0) {
-                        buffer[i] = (short)(volume * mixed_sample / active_count);
+                    else{
+                        wave1 = (short)sin(2.0 * 3.14159265 * freq * t);
                     }
+                    double mixed = wave1 + wave2 + wave3;
+                    buffer[i] = (short)(volume * mixed);
                 }
-            } 
-            else if (play_type == 1){ // MODO QUADRADO
+            } else if (play_type == 1){
                 for (int i = 0; i < BUFFER_SIZE; i++) {
-                    double mixed_sample = 0.0;
-                    int active_count = 0;
-                    
-                    for (int v = 0; v < MAX_VOICES; v++) {
-                        if (voices[v].active) {
-                            double t = fmod(voices[v].phase / (2.0 * PI), 1.0);
-                            double sample = (t < 0.5) ? 1.0 : -1.0;
-                            mixed_sample += sample;
-                            active_count++;
-                            
-                            voices[v].phase += 2.0 * PI * voices[v].freq / 44100.0;
-                        }
-                    }
-                    
-                    if (active_count > 0) {
-                        buffer[i] = (short)(volume * mixed_sample / active_count);
-                    }
+                    int samples_per_period = 44100 / freq;
+                    buffer[i] = (i % samples_per_period < samples_per_period / 2) ? volume : -volume;
+                }
+            }else if (play_type == 2){
+                for (int i = 0; i < BUFFER_SIZE; i++) {
+                    double t = (double)i / (44100.0 / freq);
+                    double saw = 2.0 * (t - floor(t + 0.5));
+                    buffer[i] = (short)(volume * saw);
+                }
+            }else if (play_type == 3){
+                for (int i = 0; i < BUFFER_SIZE; i++) {
+                    double t = fmod((double)i / (44100.0 / freq), 1.0);
+                    double tri = 4.0 * fabs(t - 0.5) - 1.0;
+                    buffer[i] = (short)(volume * tri);
                 }
             }
-            else if (play_type == 2){ // MODO SERRA
+            else if (play_type == 4){
                 for (int i = 0; i < BUFFER_SIZE; i++) {
-                    double mixed_sample = 0.0;
-                    int active_count = 0;
-                    
-                    for (int v = 0; v < MAX_VOICES; v++) {
-                        if (voices[v].active) {
-                            double t = fmod(voices[v].phase / (2.0 * PI), 1.0);
-                            double sample = 2.0 * t - 1.0;
-                            mixed_sample += sample;
-                            active_count++;
-                            
-                            voices[v].phase += 2.0 * PI * voices[v].freq / 44100.0;
-                        }
-                    }
-                    
-                    if (active_count > 0) {
-                        buffer[i] = (short)(volume * mixed_sample / active_count);
-                    }
-                }
-            }
-            else if (play_type == 3){ // MODO TRIANGULO
-                for (int i = 0; i < BUFFER_SIZE; i++) {
-                    double mixed_sample = 0.0;
-                    int active_count = 0;
-                    
-                    for (int v = 0; v < MAX_VOICES; v++) {
-                        if (voices[v].active) {
-                            double t = fmod(voices[v].phase / (2.0 * PI), 1.0);
-                            double sample = 2.0 * fabs(2.0 * t - 1.0) - 1.0;
-                            mixed_sample += sample;
-                            active_count++;
-                            
-                            voices[v].phase += 2.0 * PI * voices[v].freq / 44100.0;
-                        }
-                    }
-                    
-                    if (active_count > 0) {
-                        buffer[i] = (short)(volume * mixed_sample / active_count);
-                    }
-                }
-            }
-            else if (play_type == 4){ // MODO QUADRADO COM DUTY CYCLE
-                for (int i = 0; i < BUFFER_SIZE; i++) {
-                    double mixed_sample = 0.0;
-                    int active_count = 0;
-                    
-                    for (int v = 0; v < MAX_VOICES; v++) {
-                        if (voices[v].active) {
-                            double t = fmod(voices[v].phase / (2.0 * PI), 1.0);
-                            double sample = (t < duty_cycle) ? 1.0 : -1.0;
-                            mixed_sample += sample;
-                            active_count++;
-                            
-                            voices[v].phase += 2.0 * PI * voices[v].freq / 44100.0;
-                        }
-                    }
-                    
-                    if (active_count > 0) {
-                        buffer[i] = (short)(volume * mixed_sample / active_count);
-                    }
+                    int samples_per_period = 44100 / freq;
+                    int threshold = (int)(samples_per_period * duty_cycle);
+                    buffer[i] = (i % samples_per_period < threshold) ? volume : -volume;
                 }
             }
             
@@ -352,14 +318,10 @@ int main(){
 
             waveOutPrepareHeader(hWave, &header, sizeof(WAVEHDR));
             waveOutWrite(hWave, &header, sizeof(WAVEHDR));
-            
-            // Pequena pausa para evitar sobrecarga
-            Sleep(5);
-        } else {
-            // Pequena pausa quando não há áudio para tocar
-            Sleep(10);
         }
-    }
+
+        Sleep(2);
+        }
 
     waveOutClose(hWave);
     return 0;
